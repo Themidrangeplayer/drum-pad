@@ -1,139 +1,590 @@
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ESP32 Bluetooth Drum Pad</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#101827">
+<title>ESP32 MIDI Controller</title>
+
 <style>
-* { box-sizing: border-box; }
+:root {
+  color-scheme: dark;
+  --bg: #101827;
+  --panel: #192538;
+  --pad: #263449;
+  --border: #475569;
+  --accent: #2563eb;
+  --text: #f8fafc;
+  --muted: #a9b7ca;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
-  margin: 0; padding: 16px; background: #111827;
-  color: white; font-family: Arial, sans-serif;
-  user-select: none; -webkit-user-select: none;
+  margin: 0;
+  padding: 14px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
 }
-h2, p { text-align: center; }
-p { color: #9ca3af; font-size: 14px; }
-#connect {
-  display: block; width: 100%; max-width: 520px;
-  margin: 16px auto; padding: 15px; font-size: 16px;
+
+h1 {
+  margin: 4px 0 14px;
+  font-size: 23px;
 }
-.grid {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 10px; max-width: 520px; margin: 22px auto;
+
+h2 {
+  margin: 0 0 10px;
+  font-size: 17px;
 }
-.pad {
-  min-height: 100px; border: 1px solid #475569;
-  border-radius: 12px; background: #263449;
-  color: white; font-size: 15px; font-weight: bold;
+
+.panel {
+  padding: 13px;
+  margin-bottom: 13px;
+  border: 1px solid #34445a;
+  border-radius: 13px;
+  background: var(--panel);
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.status {
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+button, select, input {
+  font: inherit;
+}
+
+button, select, input[type="number"], input[type="text"] {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #202f43;
+  color: var(--text);
+  padding: 10px;
+}
+
+button {
+  cursor: pointer;
   touch-action: manipulation;
 }
-.pad:active { background: #2563eb; }
-button:disabled { opacity: 0.45; }
-#status { color: #86efac; }
+
+button:disabled {
+  opacity: 0.45;
+}
+
+.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.controls input[type="number"] {
+  width: 78px;
+}
+
+.controls input[type="text"] {
+  width: 100%;
+  min-width: 0;
+}
+
+select {
+  max-width: 100%;
+}
+
+.pad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pad {
+  min-width: 0;
+  min-height: 88px;
+  padding: 8px 3px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--pad);
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.pad:active,
+.pad.pressed {
+  background: var(--accent);
+  border-color: #93c5fd;
+  transform: scale(0.98);
+}
+
+.pad small {
+  display: block;
+  margin-top: 5px;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: normal;
+}
+
+.custom-list {
+  display: grid;
+  gap: 8px;
+}
+
+.custom-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px;
+  gap: 8px;
+  align-items: center;
+}
+
+.custom-row input {
+  width: 100%;
+  min-width: 0;
+}
+
+.note-info {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@media (min-width: 600px) {
+  body {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .pad-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
 </style>
 </head>
+
 <body>
-<h2>ESP32 Drum Pad</h2>
-<p>Connect once, then tap your pads.</p>
-<button id="connect" onclick="connectBLE()">Connect Bluetooth</button>
+<h1>ESP32 MIDI Controller</h1>
 
-<div class="grid">
-  <button class="pad" onclick="hit(36)">KICK</button>
-  <button class="pad" onclick="hit(38)">SNARE</button>
-  <button class="pad" onclick="hit(42)">CLOSED HAT</button>
-  <button class="pad" onclick="hit(45)">LOW TOM</button>
-  <button class="pad" onclick="hit(39)">CLAP</button>
-  <button class="pad" onclick="hit(46)">OPEN HAT</button>
-  <button class="pad" onclick="hit(47)">HIGH TOM</button>
-  <button class="pad" onclick="hit(49)">CRASH</button>
-  <button class="pad" onclick="hit(51)">RIDE</button>
-</div>
+<section class="panel">
+  <div class="status-row">
+    <div>
+      <strong>Bluetooth</strong>
+      <div id="status" class="status">Not connected</div>
+    </div>
+    <button id="connectButton" class="primary">Connect ESP32</button>
+  </div>
+  <div class="note-info">
+    Connect to ESP32-DrumPad. Keep this page open while playing.
+  </div>
+</section>
 
-<p id="status">Not connected</p>
+<section class="panel">
+  <h2>Layout</h2>
+  <div class="controls">
+    <label>
+      Mode
+      <select id="mode">
+        <option value="drums">Drum Pads</option>
+        <option value="piano">Piano</option>
+        <option value="synth">Synth / Scale</option>
+        <option value="custom">Custom Pads</option>
+      </select>
+    </label>
+
+    <label id="octaveControl">
+      Octave
+      <select id="octave">
+        <option value="2">C2</option>
+        <option value="3">C3</option>
+        <option value="4" selected>C4</option>
+        <option value="5">C5</option>
+        <option value="6">C6</option>
+      </select>
+    </label>
+
+    <label id="rootControl" class="hidden">
+      Root
+      <select id="root">
+        <option value="0">C</option>
+        <option value="1">C#</option>
+        <option value="2">D</option>
+        <option value="3">D#</option>
+        <option value="4">E</option>
+        <option value="5">F</option>
+        <option value="6">F#</option>
+        <option value="7">G</option>
+        <option value="8">G#</option>
+        <option value="9">A</option>
+        <option value="10">A#</option>
+        <option value="11">B</option>
+      </select>
+    </label>
+
+    <label id="scaleControl" class="hidden">
+      Scale
+      <select id="scale">
+        <option value="major">Major</option>
+        <option value="minor">Minor</option>
+        <option value="pentatonic">Minor pentatonic</option>
+      </select>
+    </label>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="status-row">
+    <h2 id="padTitle">Drum Pads</h2>
+    <span id="padCount" class="status">9 pads</span>
+  </div>
+  <div id="padContainer" class="pad-grid"></div>
+  <div class="note-info">
+    Tap a pad to send a MIDI note. You can press multiple pads at once.
+  </div>
+</section>
+
+<section id="customPanel" class="panel hidden">
+  <h2>Custom Pad Settings</h2>
+
+  <div class="controls">
+    <label>
+      Number of pads
+      <select id="customCount">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="4">4</option>
+        <option value="6">6</option>
+        <option value="8" selected>8</option>
+        <option value="9">9</option>
+        <option value="12">12</option>
+        <option value="16">16</option>
+        <option value="24">24</option>
+      </select>
+    </label>
+  </div>
+
+  <div id="customList" class="custom-list" style="margin-top:12px"></div>
+  <button id="applyCustom" class="primary" style="margin-top:12px">
+    Apply Custom Pads
+  </button>
+</section>
 
 <script>
-const SERVICE_UUID =
-  "7b9e0001-7c5a-4f6d-9b3a-112233445566";
-const CHARACTERISTIC_UUID =
-  "7b9e0002-7c5a-4f6d-9b3a-112233445566";
+"use strict";
 
-let characteristic = null;
-let queue = [];
-let sending = false;
+// ESP32 BLE service and characteristic UUIDs
+const SERVICE_UUID = "7b9e0001-7c5a-4f6d-9b3a-112233445566";
+const CHARACTERISTIC_UUID = "7b9e0002-7c5a-4f6d-9b3a-112233445566";
 
-async function connectBLE() {
+const noteNames = [
+  "C", "C#", "D", "D#", "E", "F",
+  "F#", "G", "G#", "A", "A#", "B"
+];
+
+const drumPads = [
+  { name: "Kick", note: 36 },
+  { name: "Snare", note: 38 },
+  { name: "Closed Hat", note: 42 },
+  { name: "Low Tom", note: 45 },
+  { name: "Clap", note: 39 },
+  { name: "Open Hat", note: 46 },
+  { name: "High Tom", note: 47 },
+  { name: "Crash", note: 49 },
+  { name: "Ride", note: 51 }
+];
+
+const majorIntervals = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19];
+const minorIntervals = [0, 2, 3, 5, 7, 8, 10, 12, 14, 15, 17, 19];
+const pentatonicIntervals = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24, 27];
+
+let bleDevice = null;
+let bleServer = null;
+let bleCharacteristic = null;
+let writeQueue = Promise.resolve();
+
+let customPads = [];
+let customApplied = false;
+
+const $ = id => document.getElementById(id);
+
+function setStatus(message) {
+  $("status").textContent = message;
+}
+
+function midiName(note) {
+  // MIDI note 60 is conventionally C4.
+  const octave = Math.floor(note / 12) - 1;
+  return noteNames[note % 12] + octave;
+}
+
+async function connectBluetooth() {
+  if (!navigator.bluetooth) {
+    setStatus("Web Bluetooth unavailable. Use Chrome on Android over HTTPS.");
+    return;
+  }
+
   try {
-    document.getElementById("status").textContent =
-      "Searching for ESP32...";
+    $("connectButton").disabled = true;
+    setStatus("Choose ESP32-DrumPad...");
 
-    const device = await navigator.bluetooth.requestDevice({
+    bleDevice = await navigator.bluetooth.requestDevice({
       filters: [{ name: "ESP32-DrumPad" }],
       optionalServices: [SERVICE_UUID]
     });
 
-    device.addEventListener("gattserverdisconnected", () => {
-      characteristic = null;
-      document.getElementById("status").textContent =
-        "Bluetooth disconnected";
+    bleDevice.addEventListener("gattserverdisconnected", () => {
+      bleCharacteristic = null;
+      bleServer = null;
+      setStatus("Disconnected. Tap Connect ESP32 to reconnect.");
     });
 
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService(SERVICE_UUID);
+    setStatus("Connecting...");
+    bleServer = await bleDevice.gatt.connect();
 
-    characteristic = await service.getCharacteristic(
-      CHARACTERISTIC_UUID
-    );
+    const service = await bleServer.getPrimaryService(SERVICE_UUID);
+    bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
-    document.getElementById("status").textContent =
-      "Bluetooth connected";
-    document.getElementById("connect").textContent =
-      "Connected";
+    setStatus("Connected to " + bleDevice.name);
   } catch (error) {
-    document.getElementById("status").textContent =
-      "Connection failed: " + error.message;
+    console.error(error);
+    setStatus("Connection failed: " + error.message);
+  } finally {
+    $("connectButton").disabled = false;
   }
 }
 
-function hit(note) {
-  if (!characteristic) {
-    document.getElementById("status").textContent =
-      "Connect Bluetooth first";
+$("connectButton").addEventListener("click", connectBluetooth);
+
+// Queue BLE writes so fast pad presses don't collide.
+// Each pad press sends a MIDI note number and velocity.
+function sendNote(note, velocity = 110) {
+  if (!bleCharacteristic) {
+    setStatus("Not connected. Connect ESP32 first.");
     return;
   }
 
-  queue.push(note);
-  sendNext();
+  const message = `${note},${velocity}`;
+  const bytes = new TextEncoder().encode(message);
+
+  writeQueue = writeQueue
+    .then(async () => {
+      if (!bleCharacteristic) return;
+
+      if (typeof bleCharacteristic.writeValueWithoutResponse === "function") {
+        await bleCharacteristic.writeValueWithoutResponse(bytes);
+      } else {
+        await bleCharacteristic.writeValue(bytes);
+      }
+    })
+    .catch(error => {
+      console.error("BLE write failed:", error);
+      setStatus("BLE write failed. Try reconnecting.");
+    });
 }
 
-async function sendNext() {
-  if (sending || queue.length === 0 || !characteristic) return;
+function makePadButton(pad) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "pad";
+  button.innerHTML = "";
 
-  sending = true;
+  const name = document.createElement("span");
+  name.textContent = pad.name;
 
-  try {
-    while (queue.length && characteristic) {
-      const note = queue.shift();
-      const message = new TextEncoder().encode(note + ",110");
+  const noteLabel = document.createElement("small");
+  noteLabel.textContent = `MIDI ${pad.note}`;
 
-      if (characteristic.writeValueWithoutResponse) {
-        await characteristic.writeValueWithoutResponse(message);
-      } else {
-        await characteristic.writeValueWithResponse(message);
-      }
+  button.appendChild(name);
+  button.appendChild(noteLabel);
+
+  // pointerdown reacts immediately and supports multi-touch.
+  // A separate click listener is intentionally NOT used.
+  button.addEventListener("pointerdown", event => {
+    event.preventDefault();
+
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+
+    button.classList.add("pressed");
+    sendNote(pad.note);
+  });
+
+  const releaseVisual = () => button.classList.remove("pressed");
+
+  button.addEventListener("pointerup", releaseVisual);
+  button.addEventListener("pointercancel", releaseVisual);
+  button.addEventListener("pointerleave", releaseVisual);
+  button.addEventListener("contextmenu", event => event.preventDefault());
+
+  return button;
+}
+
+function renderPads() {
+  const mode = $("mode").value;
+  const container = $("padContainer");
+  container.replaceChildren();
+
+  $("customPanel").classList.toggle("hidden", mode !== "custom");
+  $("octaveControl").classList.toggle("hidden", mode === "drums" || mode === "custom");
+  $("rootControl").classList.toggle("hidden", mode !== "synth");
+  $("scaleControl").classList.toggle("hidden", mode !== "synth");
+
+  let pads = [];
+
+  if (mode === "drums") {
+    $("padTitle").textContent = "Drum Pads";
+    pads = drumPads;
+  } else if (mode === "piano") {
+    $("padTitle").textContent = "Chromatic Piano";
+
+    const base = Number($("octave").value) * 12 + 12;
+    pads = Array.from({ length: 12 }, (_, i) => ({
+      name: noteNames[i],
+      note: base + i
+    }));
+  } else if (mode === "synth") {
+    $("padTitle").textContent = "Synth / Scale";
+
+    const root = Number($("root").value);
+    const octave = Number($("octave").value);
+    const base = octave * 12 + 12 + root;
+    const scale = $("scale").value;
+
+    let intervals = majorIntervals;
+    if (scale === "minor") intervals = minorIntervals;
+    if (scale === "pentatonic") intervals = pentatonicIntervals;
+
+    pads = intervals.map((interval, index) => {
+      const note = base + interval;
+      return {
+        name: `${noteNames[note % 12]} ${index + 1}`,
+        note
+      };
+    });
+  } else {
+    $("padTitle").textContent = "Custom Pads";
+
+    if (!customApplied || customPads.length === 0) {
+      createCustomSettings();
+      applyCustomSettings();
     }
-  } catch (error) {
-    document.getElementById("status").textContent =
-      "Send failed: " + error.message;
-  } finally {
-    sending = false;
-    if (queue.length && characteristic) sendNext();
+
+    pads = customPads;
+  }
+
+  pads.forEach(pad => container.appendChild(makePadButton(pad)));
+  $("padCount").textContent = `${pads.length} pads`;
+}
+
+function createCustomSettings() {
+  const count = Number($("customCount").value);
+  const list = $("customList");
+  list.replaceChildren();
+
+  for (let i = 0; i < count; i++) {
+    const defaultPad = customPads[i] || {
+      name: `Pad ${i + 1}`,
+      note: 36 + i
+    };
+
+    const row = document.createElement("div");
+    row.className = "custom-row";
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.maxLength = 18;
+    nameInput.placeholder = `Pad ${i + 1} name`;
+    nameInput.value = defaultPad.name;
+    nameInput.dataset.field = "name";
+
+    const noteInput = document.createElement("input");
+    noteInput.type = "number";
+    noteInput.min = "0";
+    noteInput.max = "127";
+    noteInput.value = defaultPad.note;
+    noteInput.dataset.field = "note";
+    noteInput.setAttribute("aria-label", `MIDI note for Pad ${i + 1}`);
+
+    row.append(nameInput, noteInput);
+    list.appendChild(row);
   }
 }
 
-if (!navigator.bluetooth) {
-  document.getElementById("status").textContent =
-    "Web Bluetooth unavailable. Open this page in supported Chrome over HTTPS.";
+function applyCustomSettings() {
+  const rows = [...$("customList").querySelectorAll(".custom-row")];
+
+  customPads = rows.map((row, i) => {
+    const nameInput = row.querySelector('[data-field="name"]');
+    const noteInput = row.querySelector('[data-field="note"]');
+
+    let note = Number(noteInput.value);
+    if (!Number.isFinite(note)) note = 36 + i;
+    note = Math.max(0, Math.min(127, Math.round(note)));
+
+    return {
+      name: nameInput.value.trim() || `Pad ${i + 1}`,
+      note
+    };
+  });
+
+  customApplied = true;
+  renderPads();
 }
+
+$("mode").addEventListener("change", () => {
+  if ($("mode").value === "custom") {
+    createCustomSettings();
+    applyCustomSettings();
+  } else {
+    renderPads();
+  }
+});
+
+$("octave").addEventListener("change", renderPads);
+$("root").addEventListener("change", renderPads);
+$("scale").addEventListener("change", renderPads);
+
+$("customCount").addEventListener("change", () => {
+  createCustomSettings();
+});
+
+$("applyCustom").addEventListener("click", applyCustomSettings);
+
+createCustomSettings();
+renderPads();
 </script>
 </body>
 </html>
