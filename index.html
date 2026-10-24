@@ -1,590 +1,230 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#101827">
-<title>ESP32 MIDI Controller</title>
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#10151d">
+<title>ESP32 MIDI Workstation</title>
 <style>
-:root {
-  color-scheme: dark;
-  --bg: #101827;
-  --panel: #192538;
-  --pad: #263449;
-  --border: #475569;
-  --accent: #2563eb;
-  --text: #f8fafc;
-  --muted: #a9b7ca;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  padding: 14px;
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, sans-serif;
-  -webkit-tap-highlight-color: transparent;
-}
-
-h1 {
-  margin: 4px 0 14px;
-  font-size: 23px;
-}
-
-h2 {
-  margin: 0 0 10px;
-  font-size: 17px;
-}
-
-.panel {
-  padding: 13px;
-  margin-bottom: 13px;
-  border: 1px solid #34445a;
-  border-radius: 13px;
-  background: var(--panel);
-}
-
-.status-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 9px;
-}
-
-.status {
-  color: var(--muted);
-  font-size: 13px;
-  overflow-wrap: anywhere;
-}
-
-button, select, input {
-  font: inherit;
-}
-
-button, select, input[type="number"], input[type="text"] {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #202f43;
-  color: var(--text);
-  padding: 10px;
-}
-
-button {
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-button:disabled {
-  opacity: 0.45;
-}
-
-.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.controls label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.controls input[type="number"] {
-  width: 78px;
-}
-
-.controls input[type="text"] {
-  width: 100%;
-  min-width: 0;
-}
-
-select {
-  max-width: 100%;
-}
-
-.pad-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.pad {
-  min-width: 0;
-  min-height: 88px;
-  padding: 8px 3px;
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  background: var(--pad);
-  color: white;
-  font-size: 14px;
-  font-weight: bold;
-  overflow-wrap: anywhere;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-}
-
-.pad:active,
-.pad.pressed {
-  background: var(--accent);
-  border-color: #93c5fd;
-  transform: scale(0.98);
-}
-
-.pad small {
-  display: block;
-  margin-top: 5px;
-  color: #cbd5e1;
-  font-size: 11px;
-  font-weight: normal;
-}
-
-.custom-list {
-  display: grid;
-  gap: 8px;
-}
-
-.custom-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 80px;
-  gap: 8px;
-  align-items: center;
-}
-
-.custom-row input {
-  width: 100%;
-  min-width: 0;
-}
-
-.note-info {
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 8px;
-}
-
-.hidden {
-  display: none !important;
-}
-
-@media (min-width: 600px) {
-  body {
-    max-width: 720px;
-    margin: 0 auto;
-  }
-
-  .pad-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
+:root{color-scheme:dark;--bg:#10151d;--panel:#19222e;--pad:#263544;--line:#394a5c;--text:#f3f6fa;--muted:#9eafc1;--accent:#4f8cff;--green:#35c58b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,sans-serif;padding:14px;max-width:900px;margin-inline:auto;-webkit-tap-highlight-color:transparent}
+h1{font-size:23px;margin:3px 0 4px}h2{font-size:15px;letter-spacing:.04em;text-transform:uppercase;color:#c5d2df;margin:0 0 12px}.sub{color:var(--muted);font-size:12px;margin-bottom:15px}
+.panel{background:var(--panel);border:1px solid #2d3a49;border-radius:14px;padding:13px;margin:12px 0}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.spread{justify-content:space-between}.grow{flex:1;min-width:0}
+button,select,input{font:inherit;color:var(--text);background:#202d3b;border:1px solid var(--line);border-radius:8px;padding:9px;min-width:0}
+button{cursor:pointer;touch-action:manipulation}button.primary{background:var(--accent);border-color:var(--accent);font-weight:650}button.active{outline:2px solid var(--green);background:#24483f}
+button:disabled{opacity:.5}.status{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.pill{padding:5px 9px;border-radius:99px;background:#263442;color:#cbd7e3;font-size:11px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.pad{min-height:84px;border-radius:11px;font-weight:700;padding:8px 3px;overflow-wrap:anywhere;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;box-shadow:inset 0 1px #ffffff12}.pad small{display:block;font-weight:400;color:#d2deea;font-size:11px;margin-top:5px}.pad.pressed{filter:brightness(1.35);transform:scale(.98);outline:2px solid #dce9ff}
+input[type=range]{padding:0;width:100%;accent-color:var(--accent)}input[type=number]{width:85px}input[type=text]{width:100%}
+.control{flex:1;min-width:120px;background:#141d27;border:1px solid #2e3d4c;border-radius:10px;padding:10px}.control label{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);margin-bottom:9px}
+.seq{display:grid;grid-template-columns:62px repeat(16,minmax(14px,1fr));gap:3px;align-items:center}.seq .head{font-size:10px;color:var(--muted);text-align:center}.seq .rowname{font-size:11px;color:#c6d2df;overflow:hidden}.step{padding:0;height:25px;border-radius:5px;background:#263443;border:1px solid #435366}.step.on{background:var(--green);border-color:var(--green)}.step.beat{box-shadow:inset 0 0 0 2px #fff8}
+.custom-row{display:grid;grid-template-columns:minmax(0,1fr) 75px 70px;gap:7px;margin:7px 0}.hidden{display:none!important}.small{font-size:11px;color:var(--muted)}.note{font-size:12px;color:var(--muted);line-height:1.45}
+@media(min-width:560px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}.pad{min-height:92px}}
 </style>
 </head>
-
 <body>
-<h1>ESP32 MIDI Controller</h1>
+<h1>ESP32 MIDI Workstation</h1>
+<div class="sub">BLE performance controller · Mac / GarageBand · IAC Driver Bus 1</div>
 
 <section class="panel">
-  <div class="status-row">
-    <div>
-      <strong>Bluetooth</strong>
-      <div id="status" class="status">Not connected</div>
-    </div>
-    <button id="connectButton" class="primary">Connect ESP32</button>
-  </div>
-  <div class="note-info">
-    Connect to ESP32-DrumPad. Keep this page open while playing.
-  </div>
+ <div class="row spread">
+  <div><strong>Bluetooth link</strong><div id="status" class="status">Not connected</div></div>
+  <button id="connect" class="primary">Connect ESP32</button>
+ </div>
+ <div class="row" style="margin-top:10px">
+  <span class="pill" id="recordState">REC OFF</span><span class="pill" id="seqState">SEQUENCER STOPPED</span><span class="pill" id="linkState">BLE OFFLINE</span>
+ </div>
 </section>
 
 <section class="panel">
-  <h2>Layout</h2>
-  <div class="controls">
-    <label>
-      Mode
-      <select id="mode">
-        <option value="drums">Drum Pads</option>
-        <option value="piano">Piano</option>
-        <option value="synth">Synth / Scale</option>
-        <option value="custom">Custom Pads</option>
-      </select>
-    </label>
-
-    <label id="octaveControl">
-      Octave
-      <select id="octave">
-        <option value="2">C2</option>
-        <option value="3">C3</option>
-        <option value="4" selected>C4</option>
-        <option value="5">C5</option>
-        <option value="6">C6</option>
-      </select>
-    </label>
-
-    <label id="rootControl" class="hidden">
-      Root
-      <select id="root">
-        <option value="0">C</option>
-        <option value="1">C#</option>
-        <option value="2">D</option>
-        <option value="3">D#</option>
-        <option value="4">E</option>
-        <option value="5">F</option>
-        <option value="6">F#</option>
-        <option value="7">G</option>
-        <option value="8">G#</option>
-        <option value="9">A</option>
-        <option value="10">A#</option>
-        <option value="11">B</option>
-      </select>
-    </label>
-
-    <label id="scaleControl" class="hidden">
-      Scale
-      <select id="scale">
-        <option value="major">Major</option>
-        <option value="minor">Minor</option>
-        <option value="pentatonic">Minor pentatonic</option>
-      </select>
-    </label>
-  </div>
+ <h2>Performance</h2>
+ <div class="row">
+  <label class="grow">Layout<br><select id="layout" style="width:100%">
+   <option value="drums">Drums</option><option value="piano">Chromatic piano</option><option value="custom">Custom pads</option>
+  </select></label>
+  <label class="grow">Octave<br><select id="octave" style="width:100%"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
+  <label class="grow">Chord mode<br><select id="chord" style="width:100%"><option value="off">Off</option><option value="major">Major</option><option value="minor">Minor</option><option value="sus2">Sus2</option><option value="sus4">Sus4</option><option value="seventh">7th</option></select></label>
+ </div>
+ <div class="row" style="margin-top:10px">
+  <label class="grow">Velocity <b id="velVal">110</b><input id="velocity" type="range" min="1" max="127" value="110"></label>
+  <label class="grow">Pad color <input id="padColor" type="color" value="#31465a" style="display:block;width:100%;height:35px;padding:2px"></label>
+ </div>
+ <div id="pads" class="grid" style="margin-top:12px"></div>
+ <div class="note" style="margin-top:9px">Press and hold for sustained notes; multiple fingers can trigger different pads. Drums use short note gates.</div>
 </section>
 
 <section class="panel">
-  <div class="status-row">
-    <h2 id="padTitle">Drum Pads</h2>
-    <span id="padCount" class="status">9 pads</span>
-  </div>
-  <div id="padContainer" class="pad-grid"></div>
-  <div class="note-info">
-    Tap a pad to send a MIDI note. You can press multiple pads at once.
-  </div>
+ <h2>Tempo & sequencer</h2>
+ <div class="row">
+  <label>BPM <input id="bpm" type="number" min="40" max="240" value="120"></label>
+  <button id="tap">Tap tempo</button><button id="seqStart" class="primary">Start</button><button id="seqStop">Stop</button>
+  <label class="row"><input type="checkbox" id="metronome"> Metronome click</label>
+ </div>
+ <div class="small" style="margin:10px 0">16-step loop · tap cells to toggle. Kick / snare / closed hat / clap.</div>
+ <div id="sequencer" class="seq"></div>
 </section>
 
-<section id="customPanel" class="panel hidden">
-  <h2>Custom Pad Settings</h2>
+<section class="panel">
+ <h2>Record & replay</h2>
+ <div class="row"><button id="record" class="primary">Start recording</button><button id="replay">Replay</button><button id="clearRecording">Clear</button><span id="recInfo" class="status">No recording</span></div>
+ <p class="note">Recording captures pad note-on/off timing. Replay sends the captured performance back through BLE.</p>
+</section>
 
-  <div class="controls">
-    <label>
-      Number of pads
-      <select id="customCount">
-        <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="4">4</option>
-        <option value="6">6</option>
-        <option value="8" selected>8</option>
-        <option value="9">9</option>
-        <option value="12">12</option>
-        <option value="16">16</option>
-        <option value="24">24</option>
-      </select>
-    </label>
-  </div>
+<section class="panel">
+ <h2>MIDI controls</h2>
+ <div class="row">
+  <div class="control"><label>Volume CC7 <b id="volVal">100</b></label><input id="volume" type="range" min="0" max="127" value="100"></div>
+  <div class="control"><label>Expression CC11 <b id="exprVal">127</b></label><input id="expression" type="range" min="0" max="127" value="127"></div>
+  <div class="control"><label>Modulation CC1 <b id="modVal">0</b></label><input id="modulation" type="range" min="0" max="127" value="0"></div>
+ </div>
+ <div class="row" style="margin-top:10px">
+  <button id="sustain" class="grow">Sustain pedal: OFF</button><button id="allOff">All notes off</button>
+ </div>
+ <div class="note" style="margin-top:9px">These controls send standard MIDI CC messages. The selected GarageBand instrument determines which controls are audible.</div>
+</section>
 
-  <div id="customList" class="custom-list" style="margin-top:12px"></div>
-  <button id="applyCustom" class="primary" style="margin-top:12px">
-    Apply Custom Pads
-  </button>
+<section class="panel" id="customPanel">
+ <h2>Custom layout</h2>
+ <div class="row"><label>Pad count <select id="customCount"><option>4</option><option selected>8</option><option>9</option><option>12</option><option>16</option><option>24</option></select></label><button id="applyCustom" class="primary">Apply settings</button></div>
+ <div id="customRows"></div>
 </section>
 
 <script>
 "use strict";
-
-// ESP32 BLE service and characteristic UUIDs
-const SERVICE_UUID = "7b9e0001-7c5a-4f6d-9b3a-112233445566";
-const CHARACTERISTIC_UUID = "7b9e0002-7c5a-4f6d-9b3a-112233445566";
-
-const noteNames = [
-  "C", "C#", "D", "D#", "E", "F",
-  "F#", "G", "G#", "A", "A#", "B"
-];
-
-const drumPads = [
-  { name: "Kick", note: 36 },
-  { name: "Snare", note: 38 },
-  { name: "Closed Hat", note: 42 },
-  { name: "Low Tom", note: 45 },
-  { name: "Clap", note: 39 },
-  { name: "Open Hat", note: 46 },
-  { name: "High Tom", note: 47 },
-  { name: "Crash", note: 49 },
-  { name: "Ride", note: 51 }
-];
-
-const majorIntervals = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19];
-const minorIntervals = [0, 2, 3, 5, 7, 8, 10, 12, 14, 15, 17, 19];
-const pentatonicIntervals = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24, 27];
-
-let bleDevice = null;
-let bleServer = null;
-let bleCharacteristic = null;
-let writeQueue = Promise.resolve();
-
-let customPads = [];
-let customApplied = false;
-
-const $ = id => document.getElementById(id);
-
-function setStatus(message) {
-  $("status").textContent = message;
+const SERVICE_UUID="7b9e0001-7c5a-4f6d-9b3a-112233445566";
+const CHARACTERISTIC_UUID="7b9e0002-7c5a-4f6d-9b3a-112233445566";
+const $=id=>document.getElementById(id);
+const drums=[["Kick",36],["Snare",38],["Closed Hat",42],["Low Tom",45],["Clap",39],["Open Hat",46],["High Tom",47],["Crash",49],["Ride",51]];
+const names=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+let device=null, characteristic=null, writeQueue=Promise.resolve(), recording=false, recordStart=0, events=[], replayTimers=[];
+let customPads=[], activePointers=new Map(), seqRunning=false, seqTimer=null, stepIndex=0, lastTaps=[], sustainOn=false;
+let seqPattern=Array.from({length:4},()=>Array(16).fill(false));
+seqPattern[0][0]=seqPattern[0][8]=true;seqPattern[1][4]=seqPattern[1][12]=true;for(let i=0;i<16;i+=2)seqPattern[2][i]=true;
+function status(s){$("status").textContent=s}
+function connected(){return !!characteristic}
+function setLink(){ $("linkState").textContent=connected()?"BLE CONNECTED":"BLE OFFLINE" }
+async function connectBLE(){
+ if(!navigator.bluetooth){status("Web Bluetooth requires Chrome on Android and HTTPS.");return}
+ try{$("connect").disabled=true;status("Choose ESP32-DrumPad…");
+  device=await navigator.bluetooth.requestDevice({filters:[{name:"ESP32-DrumPad"}],optionalServices:[SERVICE_UUID]});
+  device.addEventListener("gattserverdisconnected",()=>{characteristic=null;status("Disconnected. Reconnect to continue.");setLink()});
+  const server=await device.gatt.connect();const service=await server.getPrimaryService(SERVICE_UUID);
+  characteristic=await service.getCharacteristic(CHARACTERISTIC_UUID);
+  status("Connected to "+device.name);setLink();
+ }catch(e){status("Connection failed: "+e.message)}finally{$("connect").disabled=false}
 }
-
-function midiName(note) {
-  // MIDI note 60 is conventionally C4.
-  const octave = Math.floor(note / 12) - 1;
-  return noteNames[note % 12] + octave;
+$("connect").addEventListener("click",connectBLE);
+function sendCommand(command,recordIt=false){
+ if(recordIt&&recording)events.push({t:performance.now()-recordStart,c:command});
+ if(!characteristic)return;
+ const bytes=new TextEncoder().encode(command);
+ writeQueue=writeQueue.then(async()=>{if(!characteristic)return;if(characteristic.writeValueWithoutResponse)await characteristic.writeValueWithoutResponse(bytes);else await characteristic.writeValue(bytes)}).catch(e=>status("BLE write failed: "+e.message));
 }
-
-async function connectBluetooth() {
-  if (!navigator.bluetooth) {
-    setStatus("Web Bluetooth unavailable. Use Chrome on Android over HTTPS.");
-    return;
-  }
-
-  try {
-    $("connectButton").disabled = true;
-    setStatus("Choose ESP32-DrumPad...");
-
-    bleDevice = await navigator.bluetooth.requestDevice({
-      filters: [{ name: "ESP32-DrumPad" }],
-      optionalServices: [SERVICE_UUID]
-    });
-
-    bleDevice.addEventListener("gattserverdisconnected", () => {
-      bleCharacteristic = null;
-      bleServer = null;
-      setStatus("Disconnected. Tap Connect ESP32 to reconnect.");
-    });
-
-    setStatus("Connecting...");
-    bleServer = await bleDevice.gatt.connect();
-
-    const service = await bleServer.getPrimaryService(SERVICE_UUID);
-    bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-
-    setStatus("Connected to " + bleDevice.name);
-  } catch (error) {
-    console.error(error);
-    setStatus("Connection failed: " + error.message);
-  } finally {
-    $("connectButton").disabled = false;
-  }
+function onNote(n,v){sendCommand(`ON,${n},${v}`,true)}
+function offNote(n){sendCommand(`OFF,${n}`,true)}
+function cc(c,v){sendCommand(`CC,${c},${v}`)}
+function allNotesOff(){for(const n of activePointers.values())for(const note of n.notes)offNote(note);activePointers.clear();sendCommand("CC,123,0");sendCommand("CC,120,0")}
+function baseNote(index){
+ if($("layout").value==="drums")return drums[index][1];
+ return (Number($("octave").value)+1)*12+index;
 }
-
-$("connectButton").addEventListener("click", connectBluetooth);
-
-// Queue BLE writes so fast pad presses don't collide.
-// Each pad press sends a MIDI note number and velocity.
-function sendNote(note, velocity = 110) {
-  if (!bleCharacteristic) {
-    setStatus("Not connected. Connect ESP32 first.");
-    return;
-  }
-
-  const message = `${note},${velocity}`;
-  const bytes = new TextEncoder().encode(message);
-
-  writeQueue = writeQueue
-    .then(async () => {
-      if (!bleCharacteristic) return;
-
-      if (typeof bleCharacteristic.writeValueWithoutResponse === "function") {
-        await bleCharacteristic.writeValueWithoutResponse(bytes);
-      } else {
-        await bleCharacteristic.writeValue(bytes);
-      }
-    })
-    .catch(error => {
-      console.error("BLE write failed:", error);
-      setStatus("BLE write failed. Try reconnecting.");
-    });
+function chordNotes(note){
+ const mode=$("chord").value;
+ const intervals={off:[0],major:[0,4,7],minor:[0,3,7],sus2:[0,2,7],sus4:[0,5,7],seventh:[0,4,7,10]}[mode]||[0];
+ return intervals.map(i=>note+i).filter(n=>n<=127);
 }
-
-function makePadButton(pad) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "pad";
-  button.innerHTML = "";
-
-  const name = document.createElement("span");
-  name.textContent = pad.name;
-
-  const noteLabel = document.createElement("small");
-  noteLabel.textContent = `MIDI ${pad.note}`;
-
-  button.appendChild(name);
-  button.appendChild(noteLabel);
-
-  // pointerdown reacts immediately and supports multi-touch.
-  // A separate click listener is intentionally NOT used.
-  button.addEventListener("pointerdown", event => {
-    event.preventDefault();
-
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-
-    button.classList.add("pressed");
-    sendNote(pad.note);
+function makePads(){
+ const layout=$("layout").value;let pads=[];
+ if(layout==="drums")pads=drums.map(([name,note],i)=>({name,note,color:$("padColor").value,index:i}));
+ else if(layout==="piano")pads=Array.from({length:12},(_,i)=>({name:names[i],note:baseNote(i),color:$("padColor").value,index:i}));
+ else pads=customPads.map((p,i)=>({...p,index:i}));
+ const root=$("pads");root.replaceChildren();
+ pads.forEach(p=>{
+  const b=document.createElement("button");b.className="pad";b.style.background=p.color||$("padColor").value;
+  b.innerHTML="";const title=document.createElement("span");title.textContent=p.name;
+  const sub=document.createElement("small");sub.textContent="MIDI "+p.note;b.append(title,sub);
+  b.addEventListener("pointerdown",e=>{
+   e.preventDefault();if(e.pointerType==="mouse"&&e.button!==0)return;
+   b.classList.add("pressed");const notes=chordNotes(p.note);activePointers.set(e.pointerId,{notes,button:b});
+   notes.forEach(n=>onNote(n,Number($("velocity").value)));
   });
-
-  const releaseVisual = () => button.classList.remove("pressed");
-
-  button.addEventListener("pointerup", releaseVisual);
-  button.addEventListener("pointercancel", releaseVisual);
-  button.addEventListener("pointerleave", releaseVisual);
-  button.addEventListener("contextmenu", event => event.preventDefault());
-
-  return button;
+  const release=e=>{const item=activePointers.get(e.pointerId);if(!item)return;item.notes.forEach(offNote);item.button.classList.remove("pressed");activePointers.delete(e.pointerId)};
+  b.addEventListener("pointerup",release);b.addEventListener("pointercancel",release);b.addEventListener("lostpointercapture",release);
+  b.addEventListener("contextmenu",e=>e.preventDefault());root.appendChild(b);
+ });
 }
+function renderCustomRows(){
+ const box=$("customRows");box.replaceChildren();const count=Number($("customCount").value);
+ for(let i=0;i<count;i++){
+  const p=customPads[i]||{name:"Pad "+(i+1),note:36+i,color:"#31465a"};
+  const row=document.createElement("div");row.className="custom-row";
+  const name=document.createElement("input");name.type="text";name.value=p.name;name.maxLength=18;name.setAttribute("aria-label","Pad name");
+  const note=document.createElement("input");note.type="number";note.min=0;note.max=127;note.value=p.note;note.setAttribute("aria-label","MIDI note");
+  const color=document.createElement("input");color.type="color";color.value=p.color||"#31465a";color.style.width="100%";color.style.padding="3px";
+  row.append(name,note,color);box.append(row);
+ }
+}
+function applyCustom(){
+ customPads=[...$("customRows").children].map((row,i)=>({name:row.children[0].value.trim()||"Pad "+(i+1),note:Math.max(0,Math.min(127,Number(row.children[1].value)||0)),color:row.children[2].value}));
+ makePads();
+}
+$("layout").addEventListener("change",()=>{makePads();$("customPanel").classList.toggle("hidden",$("layout").value!=="custom")});
+$("octave").addEventListener("change",makePads);$("chord").addEventListener("change",()=>{});
+$("padColor").addEventListener("input",makePads);
+$("velocity").addEventListener("input",()=>$("velVal").textContent=$("velocity").value);
+$("customCount").addEventListener("change",renderCustomRows);$("applyCustom").addEventListener("click",applyCustom);
 
-function renderPads() {
-  const mode = $("mode").value;
-  const container = $("padContainer");
-  container.replaceChildren();
-
-  $("customPanel").classList.toggle("hidden", mode !== "custom");
-  $("octaveControl").classList.toggle("hidden", mode === "drums" || mode === "custom");
-  $("rootControl").classList.toggle("hidden", mode !== "synth");
-  $("scaleControl").classList.toggle("hidden", mode !== "synth");
-
-  let pads = [];
-
-  if (mode === "drums") {
-    $("padTitle").textContent = "Drum Pads";
-    pads = drumPads;
-  } else if (mode === "piano") {
-    $("padTitle").textContent = "Chromatic Piano";
-
-    const base = Number($("octave").value) * 12 + 12;
-    pads = Array.from({ length: 12 }, (_, i) => ({
-      name: noteNames[i],
-      note: base + i
-    }));
-  } else if (mode === "synth") {
-    $("padTitle").textContent = "Synth / Scale";
-
-    const root = Number($("root").value);
-    const octave = Number($("octave").value);
-    const base = octave * 12 + 12 + root;
-    const scale = $("scale").value;
-
-    let intervals = majorIntervals;
-    if (scale === "minor") intervals = minorIntervals;
-    if (scale === "pentatonic") intervals = pentatonicIntervals;
-
-    pads = intervals.map((interval, index) => {
-      const note = base + interval;
-      return {
-        name: `${noteNames[note % 12]} ${index + 1}`,
-        note
-      };
-    });
-  } else {
-    $("padTitle").textContent = "Custom Pads";
-
-    if (!customApplied || customPads.length === 0) {
-      createCustomSettings();
-      applyCustomSettings();
-    }
-
-    pads = customPads;
+function renderSeq(){
+ const box=$("sequencer");box.replaceChildren();
+ const rows=[["Kick",36],["Snare",38],["Hat",42],["Clap",39]];
+ const corner=document.createElement("div");corner.className="head";corner.textContent="";box.append(corner);
+ for(let s=0;s<16;s++){const h=document.createElement("div");h.className="head";h.textContent=(s%4===0)?String(s+1):"·";box.append(h)}
+ rows.forEach((r,ri)=>{
+  const label=document.createElement("div");label.className="rowname";label.textContent=r[0];box.append(label);
+  for(let s=0;s<16;s++){
+   const b=document.createElement("button");b.className="step"+(seqPattern[ri][s]?" on":"");b.setAttribute("aria-label",r[0]+" step "+(s+1));
+   b.addEventListener("click",()=>{seqPattern[ri][s]=!seqPattern[ri][s];b.classList.toggle("on",seqPattern[ri][s])});box.append(b);
   }
-
-  pads.forEach(pad => container.appendChild(makePadButton(pad)));
-  $("padCount").textContent = `${pads.length} pads`;
+ });
 }
-
-function createCustomSettings() {
-  const count = Number($("customCount").value);
-  const list = $("customList");
-  list.replaceChildren();
-
-  for (let i = 0; i < count; i++) {
-    const defaultPad = customPads[i] || {
-      name: `Pad ${i + 1}`,
-      note: 36 + i
-    };
-
-    const row = document.createElement("div");
-    row.className = "custom-row";
-
-    const nameInput = document.createElement("input");
-    nameInput.type = "text";
-    nameInput.maxLength = 18;
-    nameInput.placeholder = `Pad ${i + 1} name`;
-    nameInput.value = defaultPad.name;
-    nameInput.dataset.field = "name";
-
-    const noteInput = document.createElement("input");
-    noteInput.type = "number";
-    noteInput.min = "0";
-    noteInput.max = "127";
-    noteInput.value = defaultPad.note;
-    noteInput.dataset.field = "note";
-    noteInput.setAttribute("aria-label", `MIDI note for Pad ${i + 1}`);
-
-    row.append(nameInput, noteInput);
-    list.appendChild(row);
-  }
+function validBpm(){return Math.max(40,Math.min(240,Number($("bpm").value)||120))}
+function sequencerTick(){
+ const cells=[...$("sequencer").querySelectorAll(".step")];cells.forEach(c=>c.classList.remove("beat"));
+ for(let row=0;row<4;row++){
+  if(seqPattern[row][stepIndex]){const note=[36,38,42,39][row];sendCommand(`ON,${note},${Number($("velocity").value)}`);setTimeout(()=>sendCommand(`OFF,${note}`),90)}
+  const cell=cells[row*16+stepIndex];if(cell)cell.classList.add("beat");
+ }
+ if($("metronome").checked&&stepIndex%4===0){sendCommand("ON,76,65");setTimeout(()=>sendCommand("OFF,76"),35)}
+ stepIndex=(stepIndex+1)%16;
 }
+function startSeq(){if(seqRunning)return;seqRunning=true;$("seqState").textContent="SEQUENCER RUNNING";$("seqStart").classList.add("active");sequencerTick();seqTimer=setInterval(sequencerTick,60000/validBpm()/4)}
+function stopSeq(){seqRunning=false;clearInterval(seqTimer);seqTimer=null;$("seqState").textContent="SEQUENCER STOPPED";$("seqStart").classList.remove("active")}
+$("seqStart").addEventListener("click",startSeq);$("seqStop").addEventListener("click",stopSeq);
+$("bpm").addEventListener("change",()=>{if(seqRunning){stopSeq();startSeq()}});
+$("tap").addEventListener("click",()=>{const now=performance.now();lastTaps.push(now);lastTaps=lastTaps.filter(t=>now-t<4000).slice(-5);if(lastTaps.length>=2){const gaps=lastTaps.slice(1).map((t,i)=>t-lastTaps[i]);const avg=gaps.reduce((a,b)=>a+b,0)/gaps.length;$("bpm").value=Math.round(Math.max(40,Math.min(240,60000/avg)));if(seqRunning){stopSeq();startSeq()}}});
 
-function applyCustomSettings() {
-  const rows = [...$("customList").querySelectorAll(".custom-row")];
-
-  customPads = rows.map((row, i) => {
-    const nameInput = row.querySelector('[data-field="name"]');
-    const noteInput = row.querySelector('[data-field="note"]');
-
-    let note = Number(noteInput.value);
-    if (!Number.isFinite(note)) note = 36 + i;
-    note = Math.max(0, Math.min(127, Math.round(note)));
-
-    return {
-      name: nameInput.value.trim() || `Pad ${i + 1}`,
-      note
-    };
-  });
-
-  customApplied = true;
-  renderPads();
-}
-
-$("mode").addEventListener("change", () => {
-  if ($("mode").value === "custom") {
-    createCustomSettings();
-    applyCustomSettings();
-  } else {
-    renderPads();
-  }
+$("record").addEventListener("click",()=>{
+ recording=!recording;
+ if(recording){events=[];recordStart=performance.now();$("record").textContent="Stop recording";$("recordState").textContent="REC ON"}
+ else{$("record").textContent="Start recording";$("recordState").textContent="REC OFF";$("recInfo").textContent=events.length+" events recorded"}
 });
-
-$("octave").addEventListener("change", renderPads);
-$("root").addEventListener("change", renderPads);
-$("scale").addEventListener("change", renderPads);
-
-$("customCount").addEventListener("change", () => {
-  createCustomSettings();
+$("replay").addEventListener("click",()=>{
+ replayTimers.forEach(clearTimeout);replayTimers=[];
+ if(!events.length){$("recInfo").textContent="Record something first";return}
+ const snapshot=events.slice();
+ snapshot.forEach(ev=>replayTimers.push(setTimeout(()=>sendCommand(ev.c,false),ev.t)));
+ $("recInfo").textContent="Replaying "+snapshot.length+" events";
 });
-
-$("applyCustom").addEventListener("click", applyCustomSettings);
-
-createCustomSettings();
-renderPads();
+$("clearRecording").addEventListener("click",()=>{events=[];replayTimers.forEach(clearTimeout);replayTimers=[];$("recInfo").textContent="No recording"});
+function bindCC(id,ccNum,labelId){$(id).addEventListener("input",()=>{$(labelId).textContent=$(id).value;cc(ccNum,Number($(id).value))})}
+bindCC("volume",7,"volVal");bindCC("expression",11,"exprVal");bindCC("modulation",1,"modVal");
+$("sustain").addEventListener("pointerdown",e=>{e.preventDefault();sustainOn=true;cc(64,127);$("sustain").textContent="Sustain pedal: ON";$("sustain").classList.add("active")});
+function releaseSustain(){if(!sustainOn)return;sustainOn=false;cc(64,0);$("sustain").textContent="Sustain pedal: OFF";$("sustain").classList.remove("active")}
+$("sustain").addEventListener("pointerup",releaseSustain);$("sustain").addEventListener("pointercancel",releaseSustain);$("sustain").addEventListener("pointerleave",e=>{if(e.buttons===0)releaseSustain()});
+$("allOff").addEventListener("click",()=>{allNotesOff();releaseSustain()});
+window.addEventListener("pagehide",()=>{stopSeq();releaseSustain();allNotesOff()});
+customPads=Array.from({length:8},(_,i)=>({name:"Pad "+(i+1),note:36+i,color:"#31465a"}));
+renderCustomRows();renderSeq();makePads();setLink();
 </script>
 </body>
 </html>
