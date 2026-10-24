@@ -1,0 +1,139 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESP32 Bluetooth Drum Pad</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 16px; background: #111827;
+  color: white; font-family: Arial, sans-serif;
+  user-select: none; -webkit-user-select: none;
+}
+h2, p { text-align: center; }
+p { color: #9ca3af; font-size: 14px; }
+#connect {
+  display: block; width: 100%; max-width: 520px;
+  margin: 16px auto; padding: 15px; font-size: 16px;
+}
+.grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; max-width: 520px; margin: 22px auto;
+}
+.pad {
+  min-height: 100px; border: 1px solid #475569;
+  border-radius: 12px; background: #263449;
+  color: white; font-size: 15px; font-weight: bold;
+  touch-action: manipulation;
+}
+.pad:active { background: #2563eb; }
+button:disabled { opacity: 0.45; }
+#status { color: #86efac; }
+</style>
+</head>
+<body>
+<h2>ESP32 Drum Pad</h2>
+<p>Connect once, then tap your pads.</p>
+<button id="connect" onclick="connectBLE()">Connect Bluetooth</button>
+
+<div class="grid">
+  <button class="pad" onclick="hit(36)">KICK</button>
+  <button class="pad" onclick="hit(38)">SNARE</button>
+  <button class="pad" onclick="hit(42)">CLOSED HAT</button>
+  <button class="pad" onclick="hit(45)">LOW TOM</button>
+  <button class="pad" onclick="hit(39)">CLAP</button>
+  <button class="pad" onclick="hit(46)">OPEN HAT</button>
+  <button class="pad" onclick="hit(47)">HIGH TOM</button>
+  <button class="pad" onclick="hit(49)">CRASH</button>
+  <button class="pad" onclick="hit(51)">RIDE</button>
+</div>
+
+<p id="status">Not connected</p>
+
+<script>
+const SERVICE_UUID =
+  "7b9e0001-7c5a-4f6d-9b3a-112233445566";
+const CHARACTERISTIC_UUID =
+  "7b9e0002-7c5a-4f6d-9b3a-112233445566";
+
+let characteristic = null;
+let queue = [];
+let sending = false;
+
+async function connectBLE() {
+  try {
+    document.getElementById("status").textContent =
+      "Searching for ESP32...";
+
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ name: "ESP32-DrumPad" }],
+      optionalServices: [SERVICE_UUID]
+    });
+
+    device.addEventListener("gattserverdisconnected", () => {
+      characteristic = null;
+      document.getElementById("status").textContent =
+        "Bluetooth disconnected";
+    });
+
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+
+    characteristic = await service.getCharacteristic(
+      CHARACTERISTIC_UUID
+    );
+
+    document.getElementById("status").textContent =
+      "Bluetooth connected";
+    document.getElementById("connect").textContent =
+      "Connected";
+  } catch (error) {
+    document.getElementById("status").textContent =
+      "Connection failed: " + error.message;
+  }
+}
+
+function hit(note) {
+  if (!characteristic) {
+    document.getElementById("status").textContent =
+      "Connect Bluetooth first";
+    return;
+  }
+
+  queue.push(note);
+  sendNext();
+}
+
+async function sendNext() {
+  if (sending || queue.length === 0 || !characteristic) return;
+
+  sending = true;
+
+  try {
+    while (queue.length && characteristic) {
+      const note = queue.shift();
+      const message = new TextEncoder().encode(note + ",110");
+
+      if (characteristic.writeValueWithoutResponse) {
+        await characteristic.writeValueWithoutResponse(message);
+      } else {
+        await characteristic.writeValueWithResponse(message);
+      }
+    }
+  } catch (error) {
+    document.getElementById("status").textContent =
+      "Send failed: " + error.message;
+  } finally {
+    sending = false;
+    if (queue.length && characteristic) sendNext();
+  }
+}
+
+if (!navigator.bluetooth) {
+  document.getElementById("status").textContent =
+    "Web Bluetooth unavailable. Open this page in supported Chrome over HTTPS.";
+}
+</script>
+</body>
+</html>
